@@ -1,0 +1,146 @@
+#!/usr/bin/python
+
+#  uint8 PENDING=0
+#  uint8 ACTIVE=1
+#  uint8 PREEMPTED=2
+#  uint8 SUCCEEDED=3
+#  uint8 ABORTED=4
+#  uint8 REJECTED=5
+#  uint8 PREEMPTING=6
+#  uint8 RECALLING=7
+#  uint8 RECALLED=8
+#  uint8 LOST=9
+
+import roslib;roslib.load_manifest('mrobot_bringup')  
+import rospy
+import time
+import geometry_msgs.msg
+import move_base_msgs.msg
+from geometry_msgs.msg import Twist
+from geometry_msgs.msg import PoseStamped
+from actionlib_msgs.msg import GoalStatusArray
+from actionlib_msgs.msg import GoalID
+from move_base_msgs.msg import MoveBaseActionFeedback
+from move_base_msgs.msg import MoveBaseActionResult
+import copy
+
+
+class MoveController(object):
+    def __init__(self):
+        self.startNavigation = False
+        self.goal = None
+        self.isRobotStopped = True
+        self.robotStoppedTime = 0
+        self.cancelPub = rospy.Publisher('/move_base/cancel', GoalID, queue_size=2)
+        self.goalPub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=2)
+ 
+    def startMove(self, goal):
+        self.startNavigation = True
+        self.goal = goal
+        self.resetRobotMoveParams() 
+        rospy.loginfo("startMove")
+
+    def stopMove(self, result):
+        #if (self.goal.status.goal_id.id == result.status.goal_id.id):
+        self.startNavigation = False
+        self.resetRobotMoveParams()
+        rospy.loginfo("stopMove")
+        #else:
+        #    rospy.loginfo("stopMove but id incorrect")
+
+    def judgeGoalbalPathVaidateEffective(self, msg):
+        if (self.startNavigation == True and self.isRobotStoppedMethod(msg) == True):
+            if (self.isRobotStopped == True):
+                stopDuration = time.time() - self.robotStoppedTime
+                rospy.loginfo("robot has stopped %f second"%(stopDuration))
+                if (stopDuration > 5.0):
+                    self.restartGoal()
+            else:
+                self.isRobotStopped = True
+                self.robotStoppedTime = time.time()
+                rospy.loginfo("robot stopped")
+        else:
+            self.resetRobotMoveParams()
+                
+            
+        
+    def isRobotStoppedMethod(self, msg):
+        if (msg.linear.x == 0 and msg.linear.y == 0 and msg.linear.z == 0):
+            #rospy.loginfo("robot is stopped")
+            return True
+        return False
+
+    def restartGoal(self):
+        rospy.loginfo("restart goal")
+        self.stopMove(None)
+        self.cancelPub.publish(GoalID())
+        time.sleep(1)
+        newGoal = copy.copy(self.goal)
+        newGoal.header.stamp = rospy.Time.now()
+        self.goalPub.publish(newGoal)
+        
+        
+
+    def resetRobotMoveParams(self):
+        self.isRobotStopped = False
+        self.robotStoppedTime = 0
+
+def cmdVelcallback(msg):
+    global moveController
+
+    moveController.judgeGoalbalPathVaidateEffective(msg)
+    rospy.loginfo("cmdVelcallback Linear Components: [%f, %f, %f]"%(msg.linear.x, msg.linear.y, msg.linear.z))
+    rospy.loginfo("cmdVelcallback Angular Components: [%f, %f, %f]"%(msg.angular.x, msg.angular.y, msg.angular.z))
+
+
+def goalCallback(moveBaseGoal):
+    global moveController
+
+    position = moveBaseGoal.pose.position
+    orientation = moveBaseGoal.pose.orientation
+
+    moveController.startMove(moveBaseGoal)
+
+    rospy.loginfo("goalCallback id = %s, position [%f, %f, %f]"%(moveBaseGoal.header.frame_id, position.x, position.y, position.z))
+    rospy.loginfo("goalCallback orientation [%f, %f, %f]"%(orientation.x, orientation.y, orientation.z))
+
+def resultCallback(result):
+    global moveController
+
+    moveController.stopMove(result)
+
+    rospy.loginfo("resultCallBack id = %s, status = %8u"%(result.status.goal_id.id, result.status.status))
+
+def statusCallback(status):
+    rospy.loginfo("statusCallback id = %s, status = %8u"%(status.status_list[0].goal_id.id, status.status_list[0].status))
+
+def cancelCallback(cancel):
+    rospy.loginfo("cancelCallback id = %s"%(cancel.id))
+
+def currentGoalCallback(currentGoal):
+    position = currentGoal.pose.position
+    orientation = currentGoal.pose.orientation
+    rospy.loginfo("currentGoalCallback id = %s, position [%f, %f, %f]"%(moveBaseGoal.header.frame_id, position.x, position.y, position.z))
+    rospy.loginfo("currentGoalCallback orientation [%f, %f, %f]"%(orientation.x, orientation.y, orientation.z))
+
+def feedbackCallback(feedback):
+    rospy.loginfo("feedbackCallback id = %s, status = %8u"%(feedback.status.goal_id.id, feedback.status.status))
+
+global moveController
+
+if __name__ == "__main__":
+    global moveController
+
+    moveController = MoveController()
+  
+    rospy.init_node('global_planner_listener', anonymous=True)
+    rospy.Subscriber("/cmd_vel", Twist, cmdVelcallback)
+    rospy.Subscriber("/move_base_simple/goal", PoseStamped, goalCallback)
+    rospy.Subscriber("/move_base/result", MoveBaseActionResult, resultCallback)
+    #rospy.Subscriber("/move_base/status", GoalStatusArray, statusCallback)
+    rospy.Subscriber("/move_base/cancel", GoalID, cancelCallback)
+    #rospy.Subscriber("/move_base/current_goal", PoseStamped, currentGoalCallback)
+    #rospy.Subscriber("/move_base/feedback", MoveBaseActionFeedback, feedbackCallback)
+
+    rospy.spin()
+    
