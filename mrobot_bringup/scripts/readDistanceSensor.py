@@ -37,5 +37,5 @@ if __name__ == "__main__":
                 pub.publish(sr)
             except Exception, e:
                 print e
-        print "string = %s, time = %f" % (line, time.time())
+        #print "string = %s, time = %f" % (line, time.time())
         time.sleep(0.2)

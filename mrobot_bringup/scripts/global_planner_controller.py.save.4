@@ -16,7 +16,6 @@ import rospy
 import time
 import geometry_msgs.msg
 import move_base_msgs.msg
-from std_msgs.msg import String
 from geometry_msgs.msg import Twist, PoseWithCovarianceStamped
 from geometry_msgs.msg import PoseStamped
 from actionlib_msgs.msg import GoalStatusArray
@@ -54,9 +53,6 @@ class MoveController(object):
         init.header.seq = 10
         #init.header.stamp = rospy.Time.now()
         init.header.frame_id = "map"
-        init.pose.covariance[0*6+0] = 0.25 #0.5*0.5
-        init.pose.covariance[6*1+1] = 0.25
-        init.pose.covariance[6*5+5] = 0.068538919452 #pi / 12 * pi / 12
         init.pose.pose.position.x = 20.420918
         init.pose.pose.position.y = 8.501009
         init.pose.pose.position.z = 0.000000
@@ -64,6 +60,42 @@ class MoveController(object):
         init.pose.pose.orientation.y = 0.0
         init.pose.pose.orientation.z = 0.829574
         init.pose.pose.orientation.w = 0.558396
+        init.pose.0.25
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.25
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.0
+0.068538919452
         self.initPosition.publish(init)
 
     def startMove(self, goal):
@@ -112,20 +144,17 @@ class MoveController(object):
         return False
 
     def restartGoal(self):
-        rospy.loginfo("MoveController restart goal")
+        rospy.loginfo("restart goal")
         oldGoal = self.goalList[-1]
-        
+ 
         self.stopMove(None)
         self.cancelPub.publish(GoalID())
         time.sleep(1)
-        
         newGoal = copy.copy(oldGoal)
         newGoal.header.stamp = rospy.Time.now()
         self.goalPub.publish(newGoal)
         
-    def cancelGoal(self):
-        rospy.loginfo("MoveController cancel goal")
-        self.cancelPub.publish(GoalID())     
+        
 
     def resetRobotMoveParams(self):
         self.isRobotStopped = False
@@ -174,27 +203,14 @@ def feedbackCallback(feedback):
 
 global moveController
 
-def moveBaseKeyControl(string):
-    global moveController
-    rospy.loginfo("moveBaseKeyControl = %s"%(string))
-    if cmp(string, "restart"):
-        rospy.loginfo("moveBaseKeyControl = %s"%(string))
-        moveController.restartGoal()
-    elif cmp(string, "clearmap"):
-        rospy.loginfo("moveBaseKeyControl = %s"%(string))
-    elif cmp(string, "stop"):
-        rospy.loginfo("moveBaseKeyControl = %s"%(string))
-        moveController.cancelGoal()
-        
-
 def update_initial_pose(init):
     position = init.pose.pose.position
     orientation = init.pose.pose.orientation
     rospy.loginfo("update_initial_pose header seq = %d, frameid = %s"%(init.header.seq, init.header.frame_id))
     rospy.loginfo("update_initial_pose x = %f, y = %f, z = %f"%(position.x, position.y, position.z))
     rospy.loginfo("update_initial pose x = %f, y = %f, z = %f, w= %f"%(orientation.x, orientation.y, orientation.z, orientation.w))
-    #for i in init.pose.covariance: 
-    #   print i
+    for i in init.pose.covariance: 
+       print i
 
 if __name__ == "__main__":
     global moveController
@@ -211,9 +227,8 @@ if __name__ == "__main__":
     rospy.Subscriber("initialpose", PoseWithCovarianceStamped, update_initial_pose)
     #rospy.Subscriber("/move_base/current_goal", PoseStamped, currentGoalCallback)
     #rospy.Subscriber("/move_base/feedback", MoveBaseActionFeedback, feedbackCallback)
-    rospy.Subscriber("/jiamiaohe/move_base_control", String, moveBaseKeyControl)   
 
-    #moveController.initPositionMethod()
+    moveController.initPositionMethod()
 
     rospy.spin()
     

@@ -7,11 +7,11 @@
     <rosparam file="$(find mrobot_nav)/config/turtlebot/dwa_local_planner_params.yaml" command="load" />
     <param name="base_global_planner" value="RAstar_planner/RAstarPlannerROS"/>
 -->
-    <rosparam file="$(find mrobot_nav)/config/turtlebot/costmap_common_params.yaml" command="load" ns="global_costmap" />
-    <rosparam file="$(find mrobot_nav)/config/turtlebot/costmap_common_params.yaml" command="load" ns="local_costmap" />
-    <rosparam file="$(find mrobot_nav)/config/turtlebot/local_costmap_params.yaml" command="load" />
-    <rosparam file="$(find mrobot_nav)/config/turtlebot/global_costmap_params.yaml" command="load" />
-    <rosparam file="$(find mrobot_nav)/config/turtlebot/base_local_planner_params.yaml" command="load" />
+    <rosparam file="$(find mrobot_nav)/config/mrobot_tk1_home/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find mrobot_nav)/config/mrobot_tk1_home/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find mrobot_nav)/config/mrobot_tk1_home/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find mrobot_nav)/config/mrobot_tk1_home/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find mrobot_nav)/config/mrobot_tk1_home/base_local_planner_params.yaml" command="load" />
   </node>
   
 </launch>
