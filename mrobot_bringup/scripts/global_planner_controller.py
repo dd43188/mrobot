@@ -16,6 +16,7 @@ import rospy
 import time
 import geometry_msgs.msg
 import move_base_msgs.msg
+from std_srvs.srv import Empty
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist, PoseWithCovarianceStamped
 from geometry_msgs.msg import PoseStamped
@@ -48,7 +49,11 @@ class MoveController(object):
         self.cancelPub = rospy.Publisher('/move_base/cancel', GoalID, queue_size=2)
         self.goalPub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=2)
         self.initPosition = rospy.Publisher("initialpose", PoseWithCovarianceStamped, queue_size=2)            
-  
+        rospy.loginfo("wait for clear_costmaps service")
+        rospy.wait_for_service('/move_base/clear_costmaps')
+        self.clearMapService = rospy.ServiceProxy('/move_base/clear_costmaps', Empty)   
+        rospy.loginfo("clear_costmaps service found!")   
+
     def initPositionMethod(self):
         init = PoseWithCovarianceStamped()
         init.header.seq = 10
@@ -114,18 +119,21 @@ class MoveController(object):
     def restartGoal(self):
         rospy.loginfo("MoveController restart goal")
         oldGoal = self.goalList[-1]
-        
-        self.stopMove(None)
-        self.cancelPub.publish(GoalID())
-        time.sleep(1)
-        
+        #self.stopMove(None)
+        #self.cancelPub.publish(GoalID())
+        #time.sleep(1)
         newGoal = copy.copy(oldGoal)
         newGoal.header.stamp = rospy.Time.now()
+        newGoal.header.seq += 1
         self.goalPub.publish(newGoal)
-        
-    def cancelGoal(self):
+
+    def cancelHjmGoal(self):
         rospy.loginfo("MoveController cancel goal")
         self.cancelPub.publish(GoalID())     
+
+    def clearCostmap(self):
+        rospy.loginfo("MoveController clearCostmap")
+        self.clearMapService()
 
     def resetRobotMoveParams(self):
         self.isRobotStopped = False
@@ -176,15 +184,16 @@ global moveController
 
 def moveBaseKeyControl(string):
     global moveController
-    rospy.loginfo("moveBaseKeyControl = %s"%(string))
-    if cmp(string, "restart"):
-        rospy.loginfo("moveBaseKeyControl = %s"%(string))
+    rospy.loginfo("moveBaseKeyControl 0 = %s"%(string.data))
+    if string.data == 'restart':
+        rospy.loginfo("moveBaseKeyControl 1 = %s"%(string))
         moveController.restartGoal()
-    elif cmp(string, "clearmap"):
-        rospy.loginfo("moveBaseKeyControl = %s"%(string))
-    elif cmp(string, "stop"):
-        rospy.loginfo("moveBaseKeyControl = %s"%(string))
-        moveController.cancelGoal()
+    elif string.data == 'clearmap':
+        rospy.loginfo("moveBaseKeyControl 2 = %s"%(string))
+        moveController.clearCostmap()
+    elif string.data == 'stop':
+        rospy.loginfo("moveBaseKeyControl 3 = %s"%(string))
+        moveController.cancelHjmGoal()
         
 
 def update_initial_pose(init):

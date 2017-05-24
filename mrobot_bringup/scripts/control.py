@@ -41,13 +41,13 @@ def dealKeyEvent(key, value):
         th = 0.5
     elif (key == 77):
         th = -0.5
-    elif (key == 74 and value == 0):
+    elif (key == 74 and value == 1):
         moveBasePub.publish("restart")
         return
-    elif (key == 1 and value == 0):
+    elif (key == 1 and value == 1):
         moveBasePub.publish("clearmap")
         return
-    elif (key == 83 and value == 0):
+    elif (key == 83 and value == 1):
         moveBasePub.publish("stop")
         return 
   
